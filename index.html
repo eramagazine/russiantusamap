@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Карта тусовок</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <style>
+    body { margin: 0; color: #111; background: #eee; font: 16px/1.45 system-ui, sans-serif; }
+    #map { width: 100%; height: 100vh; height: 100dvh; background: #eee; }
+    .leaflet-tile-pane { filter: grayscale(1); }
+    .venue-marker { border-radius: 50%; background: #111; border: 3px solid white; box-sizing: border-box; box-shadow: 0 0 0 1px #111; }
+    .venue-marker:focus-visible { outline: 3px solid #111; outline-offset: 4px; }
+    .leaflet-popup-content { font: 14px/1.45 system-ui, sans-serif; }
+    .leaflet-popup-content strong { display: block; margin-bottom: 4px; font-size: 16px; }
+    #status { position: absolute; z-index: 1000; top: 12px; left: 50%; transform: translateX(-50%); margin: 0; padding: 8px 12px; background: white; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <main id="map" aria-label="Карта тусовочных мест Санкт-Петербурга"></main>
+  <p id="status" role="status">Загружаем карту…</p>
+  <noscript>Для интерактивной карты нужен JavaScript.</noscript>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const places = [
+      { name: 'К-30', address: 'ул. Красного Текстильщика, 10–12АШ', note: 'Вход с Синопской набережной', position: [59.938541, 30.395926] },
+      { name: 'Чёртики', address: 'Невский проспект, 35, литера Д', position: [59.933258, 30.330475] },
+      { name: 'Мишка бар', address: 'Конногвардейский бульвар, 4', note: 'Подъезд 3А', position: [59.932704, 30.298180] }
+    ];
+
+    const status = document.getElementById('status');
+    if (typeof L === 'undefined') {
+      status.textContent = 'Карта не загрузилась. Попробуй обновить страницу.';
+    } else {
+      const map = L.map('map');
+      const bounds = L.latLngBounds(places.map(place => place.position));
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+
+      const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      });
+      tiles.on('tileload', () => { status.hidden = true; });
+      tiles.on('load', () => {
+        if (!status.hidden) status.textContent = 'Подложка карты не загрузилась. Метки доступны.';
+      });
+      tiles.addTo(map);
+
+      const icon = L.divIcon({
+        className: 'venue-marker',
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
+        popupAnchor: [0, -11]
+      });
+
+      for (const place of places) {
+        const card = document.createElement('div');
+        const name = document.createElement('strong');
+        name.textContent = place.name;
+        card.append(name, place.address);
+        if (place.note) {
+          const note = document.createElement('div');
+          note.textContent = place.note;
+          card.append(note);
+        }
+        const marker = L.marker(place.position, { icon, title: place.name }).addTo(map);
+        marker.getElement().setAttribute('aria-label', place.name);
+        marker.bindPopup(card);
+      }
+    }
+  </script>
+</body>
+</html>
